@@ -1,0 +1,309 @@
+version: "2.4"
+# I use this for testing exclusively
+
+services:
+  pingaccess-admin:
+    image: pingidentity/pingaccess:6.1.0-alpine-az11-${TAG}
+    environment:
+      - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+      - SERVER_PROFILE_PATH=pa-clustering/pingaccess
+      - OPERATIONAL_MODE=CLUSTERED_CONSOLE
+      - PA_CONSOLE_HOST=pingaccess-admin
+      - PING_IDENTITY_PASSWORD=2FederateM0re
+    env_file:
+      - ~/.pingidentity/devops
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    # user: "3629:9646"
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "9000:9000"
+    networks:
+      - pingnet
+
+  pingaccess:
+    image: pingidentity/pingaccess:6.1.0-alpine-az11-${TAG}
+    environment:
+      # - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+      # - SERVER_PROFILE_PATH=baseline/pingaccess
+      # - VERBOSE=true
+      - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+      - SERVER_PROFILE_PATH=pa-clustering/pingaccess
+      - OPERATIONAL_MODE=CLUSTERED_ENGINE
+      - PA_CONSOLE_HOST=pingaccess-admin
+      - PING_IDENTITY_PASSWORD=2FederateM0re
+    env_file:
+      - ~/.pingidentity/devops
+    #volumes:
+      #- /tmp/6.0.2:/opt/out
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    # user: "3629:9646"
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "3000:3000"
+      # - "9000:9000"
+    #command: start-server /opt/wait-for localhost:9000 -t 180 -- curl -k https://localhost:9000/pa/heartbeat.ping
+    networks:
+      - pingnet
+
+  pingfederate:
+    image: pingidentity/pingfederate:9.3.3-alpine-az11-${TAG}
+    # command: wait-for pingdirectory:1389 -t 300 -- entrypoint.sh start-server
+    environment:
+      # - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+      # - SERVER_PROFILE_PATH=baseline/pingfederate
+      - VERBOSE=true
+    env_file:
+      - ~/.pingidentity/devops
+    # volumes:
+    #   - /tmp/a/pingfederate:/opt/out
+    #  - ${HOME}/projects/devops/pingidentity-server-profiles/baseline/pingfederate:/opt/in
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "9031:9031"
+      - "9999:9999"
+    networks:
+      - pingnet
+
+  pingdirectoryproxy:
+    image: pingidentity/pingdirectoryproxy:8.0.0.1-alpine-az11-${TAG}
+    environment:
+      - SECRETS_DIR=/opt/staging/.sec
+      - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+      - SERVER_PROFILE_PATH=baseline/pingdirectoryproxy
+    env_file:
+      - ~/.pingidentity/devops
+    volumes:
+      - /tmp/a/proxy:/opt/in
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "4389:1389"
+      - "4636:1636"
+      - "4443:1443"
+    networks:
+      - pingnet
+
+  pingdatagovernancepap:
+    image: pingidentity/pingdatagovernancepap:8.1.0.0-alpine-az11-${TAG}
+    env_file:
+      - ~/.pingidentity/devops
+    environment:
+     - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+     - SERVER_PROFILE_PATH=pap-pdg-pd/v2/pap
+     - SERVER_PROFILE_BRANCH=arno-dev
+     - PING_EXTERNAL_BASE_URL=test.pingidentity.space:5443
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "5443:1443"
+    networks:
+      - pingnet
+
+  pingdatagovernance:
+    image: pingidentity/pingdatagovernance:8.1.0.0-alpine-az11-${TAG}
+    environment:
+     - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+     - SERVER_PROFILE_PATH=pap-pgd-pd/v2/pdg
+     - SERVER_PROFILE_BRANCH=arno-dev
+     - SERVER_PROFILE_PARENT=BASELINE
+     - SERVER_PROFILE_BASELINE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+     - SERVER_PROFILE_BASELINE_PATH=baseline/pingdatagovernance
+     - SERVER_PROFILE_BASELINE_BRANCH=arno-dev
+     - MAX_HEAP_SIZE=900m
+    env_file:
+      - ~/.pingidentity/devops
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "3389:1389"
+      - "3636:1636"
+      - "3443:1443"
+    networks:
+      - pingnet
+
+  pingdatasync:
+    image: pingidentity/pingdatasync:8.0.0.1-alpine-az11-${TAG}
+    environment:
+      - MAX_HEAP_SIZE=900m
+      - VERBOSE=true
+      - TAIL_LOG_FILES="/opt/out/instance/logs/sync /opt/out/instance/logs/errors"
+      #- SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+      #- SERVER_PROFILE_PATH=baseline/pingdirectory
+    env_file:
+      - ~/.pingidentity/devops
+    volumes:
+      - /tmp/a/sync:/opt/in
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "2389:1389"
+      - "2636:1636"
+      - "2443:1443"
+    networks:
+      - pingnet
+
+  pingdirectory:
+    image: pingidentity/pingdirectory:8.1.0.0-alpine-az11-${TAG}
+    scale: 1
+    environment:
+      - MAX_HEAP_SIZE=900m
+      - ORCHESTRATION_TYPE=COMPOSE
+      - COMPOSE_SERVICE_NAME=a_pingdirectory
+      - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+      - SERVER_PROFILE_PATH=baseline/pingdirectory
+      - TAIL_LOG_PARALLEL=true
+      - VERBOSE=true
+      - MAX_HEAP_SIZE=768m
+    env_file:
+      - ~/.pingidentity/devops
+    volumes:
+     - pd_out:/opt/out
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    mem_limit: 1200m
+    memswap_limit: 1200m
+    mem_swappiness: 0
+    ports:
+      - "1389-1398:1389"
+      - "1636-1645:1636"
+      - "1443-1452:1443"
+    networks:
+      - pingnet
+
+  pingdataconsole:
+    image: pingidentity/pingdataconsole:8.1.0.0-alpine-az11-${TAG}
+    environment:
+      - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
+      - SERVER_PROFILE_PATH=baseline/pingdataconsole
+        # - SERVER_PROFILE_BRANCH=arno-dev
+        #- AUTOGEN_TRUSTSTORE_FILE=/opt/staging/autogen-truststore
+        #- AUTOGEN_TRUSTSTORE_ENABLED=true
+        #- CATALINA_OPTS="-agentlib:jdwp=transport=dt_socket,address=0.0.0.0:5005,server=y,suspend=n"
+      - JAVA_OPTS=-Xmx900m -Xms900m
+      - VERBOSE=true
+      - KEYSTORE_PIN=2FederateM0re
+    env_file:
+      - ~/.pingidentity/devops
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "8443:1443"
+      - "5005:5005"
+    volumes:
+      - ${PWD}/certs:/opt/in
+    networks:
+      - pingnet
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=2FederateM0re
+    ports:
+      - "1433:1433"
+    networks:
+      - pingnet
+
+  certs:
+    image: neilpang/acme.sh
+    command: --issue --alpn -d test.pingidentity.space
+    #command: --issue --dns dns_gandi_livedns -d test.pingidentity.space
+    #environment:
+    #  - GANDI_LIVEDNS_KEY="cbtcGEgowRxH8Ta9eYnxNnmP"
+    volumes:
+      - ${PWD}/certs/:/acme.sh/test.pingidentity.space/
+    ports:
+      - "443:443"
+
+  httpbin:
+    image: kennethreitz/httpbin
+    ports:
+      - "80:80"
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    mem_limit: 64m
+    memswap_limit: 64m
+    mem_swappiness: 0
+    networks:
+      - pingnet
+
+networks:
+    pingnet:
+
+volumes:
+  pd_out:

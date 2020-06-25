@@ -1,0 +1,87 @@
+#!/usr/bin/env sh
+
+usage ()
+{
+    cat <<_END
+Usage: ${0} {options}
+    where {options} include:
+    -s, --service
+        The name of the service to up
+_END
+    test -n "${*}" && echo "${*}"
+    exit 99
+}
+
+append ()
+{
+    eval "${1}=\"\${${1}} ${2}\""
+}
+
+resolve_service ()
+{
+    case "${1}" in
+        access|pa)
+            echo pingaccess
+            ;;
+        directory|pd|ds)
+            echo pingdirectory
+            ;;
+        directoryproxy|proxy|pdp|px)
+            echo pingdirectoryproxy
+            ;;
+        dataconsole|console|pdc|dc)
+            echo pingdataconsole
+            ;;
+        datasync|sync|pds)
+            echo pingdatasync
+            ;;
+        datagovernance|datagov|pdg|dg)
+            echo pingdatagovernance
+            ;;
+        datagovernancepap|pap)
+            echo pingdatagovernancepap
+            ;;
+        delegator)
+            echo pingdelegator
+            ;;
+        central|pc)
+            echo pingcentral
+            ;;
+        federate|pf)
+            echo pingfederate
+            ;;
+        *)
+            echo ${1}
+            ;;
+    esac
+}
+
+_services=""
+while ! test -z "${1}"
+do
+    case "${1}" in
+        -s|--service)
+            shift
+            test -z "${1}" && usage "You must provide a service name"
+            _service=$( resolve_service "${1}" )
+            append _services "${_service}"
+            ;;
+        *)
+            usage "unrecognized option"
+            ;;
+    esac
+    shift
+done
+
+if test -z "${TAG}"
+then
+    export TAG=$( docker images | awk '/pingbase/{print $2}' )
+fi
+
+docker-compose stop ${_services}
+if test ${?} -ne 0
+then
+    echo "Could not stop ${_services}"
+else
+    docker-compose rm -f ${_services}
+fi
