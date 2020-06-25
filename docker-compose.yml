@@ -144,7 +144,7 @@ services:
     image: pingidentity/pingdatagovernance:8.1.0.0-alpine-az11-${TAG}
     environment:
      - SERVER_PROFILE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
-     - SERVER_PROFILE_PATH=pap-pgd-pd/v2/pdg
+     - SERVER_PROFILE_PATH=pap-pdg-pd/v2/pdg
      - SERVER_PROFILE_BRANCH=arno-dev
      - SERVER_PROFILE_PARENT=BASELINE
      - SERVER_PROFILE_BASELINE_URL=https://github.com/pingidentity/pingidentity-server-profiles.git
